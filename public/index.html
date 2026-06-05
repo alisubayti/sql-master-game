@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SQL Master Game</title>
+<script src="sql-wasm.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d1117;color:#c9d1d9;font:14px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',monospace;min-height:100vh}
+.c{max-width:820px;margin:0 auto;padding:16px}
+.hdr{text-align:center;padding:20px 0 16px}
+.hdr h1{font-size:1.6em;background:linear-gradient(135deg,#3fb950,#58a6ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hdr p{color:#8b949e;font-size:0.9em;margin-top:4px}
+
+/* Level buttons */
+.ls{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;margin-bottom:16px}
+.lb{background:#161b22;border:2px solid #30363d;border-radius:10px;padding:14px;cursor:pointer;display:flex;align-items:center;color:#e1e4e8;width:100%;text-align:left;font-size:0.95em;transition:.2s}
+.lb:hover{transform:translateY(-1px);box-shadow:0 3px 12px rgba(88,166,255,.12)}
+.lb .n{font-size:1.3em;font-weight:700;width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:10px}
+.lb .i{margin-left:0}
+.lb .i h3{font-size:0.95em;margin-bottom:2px}
+.lb .i small{color:#8b949e;font-size:0.75em}
+.lb.v1{border-color:#3fb950}.lb.v1 .n{background:#1a472a;color:#3fb950}
+.lb.v2{border-color:#58a6ff}.lb.v2 .n{background:#1a3a5c;color:#58a6ff}
+.lb.v3{border-color:#d29922}.lb.v3 .n{background:#3b2e1a;color:#d29922}
+.lb.v4{border-color:#bc8cff}.lb.v4 .n{background:#3b1a3b;color:#bc8cff}
+.lb.v5{border-color:#f85149}.lb.v5 .n{background:#3b1a1a;color:#f85149}
+.lb.v6{border-color:#56d364}.lb.v6 .n{background:#1a3b2a;color:#56d364}
+.lb.v7{border-color:#f97583}.lb.v7 .n{background:#3b1a2a;color:#f97583}
+.lb.v8{border-color:#79c0ff}.lb.v8 .n{background:#1a2a4a;color:#79c0ff}
+.lb.v9{border-color:#ffa657}.lb.v9 .n{background:#3b2a1a;color:#ffa657}
+.lb.v10{border-color:#ffd33d}.lb.v10 .n{background:#3b3a1a;color:#ffd33d}
+
+/* Stats bar */
+.sr{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}
+.sr>div{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px;text-align:center}
+.sr .v{font-size:1.3em;font-weight:700;color:#f0f6fc}
+.sr .l{font-size:0.75em;color:#8b949e;margin-top:2px}
+
+/* Concept chips */
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.ch{background:#21262d;border:1px solid #30363d;border-radius:16px;padding:4px 12px;cursor:pointer;font-size:0.8em;color:#c9d1d9;transition:.15s}
+.ch.on{border-color:#58a6ff;background:#1a3a5c;color:#58a6ff}
+.ch:hover{border-color:#58a6ff}
+
+/* Problem header */
+.ph{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px;margin-bottom:10px}
+.ph h2{font-size:1.1em;margin-bottom:4px}
+.ph .meta{color:#8b949e;font-size:0.82em;display:flex;gap:12px;flex-wrap:wrap}
+.ph .meta .tag{color:#58a6ff}
+
+/* Schema tables */
+.st{background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:10px;margin-bottom:10px;font-size:0.78em;overflow-x:auto}
+.st h4{color:#8b949e;margin-bottom:6px;font-size:0.85em}
+.st table{border-collapse:collapse;width:100%}
+.st td,.st th{border:1px solid #21262d;padding:3px 6px;text-align:left;white-space:nowrap}
+.st th{background:#161b22;color:#8b949e;font-weight:500}
+
+/* Editor area */
+.ed{width:100%;min-height:100px;background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px;color:#c9d1d9;font:13px/1.6 'Consolas','Courier New',monospace;resize:vertical;tab-size:2;outline:none;white-space:pre;overflow-wrap:normal;overflow-x:auto}
+.ed:focus{border-color:#58a6ff}
+.eb,.nb{background:#238636;border:none;border-radius:6px;padding:8px 18px;color:#fff;font-size:0.9em;cursor:pointer;margin:8px 4px 8px 0;transition:.15s}
+.eb:hover{background:#2ea043}
+.nb{background:#21262d;color:#c9d1d9}
+.nb:hover{background:#30363d}
+.nb:disabled{opacity:0.4;cursor:default}
+
+/* Results */
+.r{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px;margin-top:10px;min-height:40px;font-size:0.85em;overflow-x:auto}
+.r table{border-collapse:collapse;width:100%;font-size:0.78em}
+.r td,.r th{border:1px solid #21262d;padding:3px 6px;text-align:left;white-space:nowrap}
+.r th{background:#0d1117;color:#8b949e;font-weight:500}
+.msg{padding:10px;border-radius:6px;margin-bottom:8px;font-weight:600}
+.msg.ok{background:#1a472a;border:1px solid #3fb950;color:#3fb950}
+.msg.fail{background:#3b1a1a;border:1px solid #f85149;color:#f85149}
+.msg.err{background:#3b2a1a;border:1px solid #d29922;color:#d29922}
+
+/* Jump-to-problem */
+.jp{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0;max-height:180px;overflow-y:auto}
+.jp button{width:36px;height:32px;background:#161b22;border:1px solid #30363d;border-radius:4px;color:#8b949e;cursor:pointer;font-size:0.75em;transition:.1s}
+.jp button:hover{border-color:#58a6ff;color:#c9d1d9}
+.jp button.act{border-color:#3fb950;color:#3fb950;background:#1a472a}
+
+/* Autocomplete toggle */
+.at{display:flex;align-items:center;gap:6px;margin:6px 0;font-size:0.82em;color:#8b949e}
+.at input[type=checkbox]{accent-color:#58a6ff}
+
+/* Progress bar */
+.pb{margin:8px 0;height:6px;background:#21262d;border-radius:3px;overflow:hidden}
+.pb>div{height:100%;background:linear-gradient(90deg,#3fb950,#58a6ff);border-radius:3px;transition:width .3s}
+
+/* Hint */
+.ht{background:#1a3a5c;border:1px solid #58a6ff;border-radius:6px;padding:8px 10px;margin-top:8px;font-size:0.82em;display:none}
+.ht.show{display:block}
+
+/* Loading */
+#loading{display:flex;align-items:center;justify-content:center;min-height:200px;color:#8b949e}
+</style>
+</head>
+<body>
+<div class="c">
+  <div class="hdr"><h1>⚡ SQL Master</h1><p><span id="tot">0</span> problems · 10 levels</p></div>
+
+  <div id="loading">Loading sql.js engine…</div>
+  <div id="app" style="display:none">
+
+    <!-- Progress -->
+    <div class="pb"><div id="progFill" style="width:0%"></div></div>
+    <div class="sr">
+      <div><div class="v" id="solvedCt">0</div><div class="l">solved</div></div>
+      <div><div class="v" id="levelCt">0</div><div class="l">in level</div></div>
+      <div><div class="v" id="probNum">-</div><div class="l">problem</div></div>
+      <div><div class="v" id="streak">0</div><div class="l">streak</div></div>
+    </div>
+
+    <!-- Level selection -->
+    <div class="ls" id="levelList"></div>
+
+    <!-- Concept chips -->
+    <div class="chips" id="chips"></div>
+
+    <!-- Jump-to-problem -->
+    <div id="jumpArea" style="display:none"><div class="jp" id="jumpGrid"></div></div>
+
+    <!-- Problem display -->
+    <div id="probArea" style="display:none">
+      <div class="ph" id="probHeader"></div>
+      <div class="st" id="schemaView"></div>
+
+      <div style="display:flex;gap:6px">
+        <button class="eb" id="runBtn">▶ Run (Ctrl+Enter)</button>
+        <button class="nb" id="hintBtn">💡 Hint</button>
+        <label class="at"><input type="checkbox" id="acToggle"> autocomplete</label>
+      </div>
+
+      <textarea class="ed" id="sqlInput" spellcheck="false" placeholder="Write your SQL query here…"></textarea>
+
+      <div style="display:flex;gap:6px;margin-top:4px">
+        <button class="nb" id="prevBtn">◀ Previous</button>
+        <button class="nb" id="nextBtn">Next ▶</button>
+        <button class="nb" id="jumpToggleBtn">🔢 Jump</button>
+      </div>
+
+      <div class="ht" id="hintBox"></div>
+      <div class="r" id="resultBox"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+// ENGINE (faithful JS port, Stage 2 verified)
+// ═══════════════════════════════════════
+function tolerantVal(v) {
+  if (typeof v === 'number') return Math.round(v * 1e6) / 1e6;
+  return v;
+}
+function tolerantRow(row) {
+  const out = {};
+  for (const [k, v] of Object.entries(row)) out[k] = tolerantVal(v);
+  return out;
+}
+function normalizeUnordered(rows) {
+  return rows.map(r => JSON.stringify(Object.entries(tolerantRow(r)).sort())).sort();
+}
+function normalizeOrdered(rows) {
+  return rows.map(r => JSON.stringify(Object.entries(tolerantRow(r)).sort()));
+}
+function resultsMatch(problem, userRows, solutionRows) {
+  const ordered = problem.ordered === true;
+  const normUser = ordered ? normalizeOrdered(userRows) : normalizeUnordered(userRows);
+  const normSol = ordered ? normalizeOrdered(solutionRows) : normalizeUnordered(solutionRows);
+  if (normUser.length !== normSol.length) return false;
+  for (let i = 0; i < normUser.length; i++) {
+    if (normUser[i] !== normSol[i]) return false;
+  }
+  return true;
+}
+
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+let PROBLEMS = [];
+let SQL = null;
+let currentLevel = null;
+let currentIdx = 0;
+let filtered = [];
+let solved = new Set(JSON.parse(localStorage.getItem('sql_master_solved') || '[]'));
+let streak = 0;
+
+const LEVEL_META = [
+  {n:1, t:'SELECT & Basics', d:'SELECT, WHERE, ORDER BY, LIMIT, LIKE, BETWEEN', cls:'v1'},
+  {n:2, t:'ORDER BY, NULLs, Set Ops', d:'ORDER BY, IS NULL, COALESCE, UNION/INTERSECT/EXCEPT', cls:'v2'},
+  {n:3, t:'Aggregation', d:'COUNT, SUM, AVG, MIN, MAX, GROUP BY, HAVING', cls:'v3'},
+  {n:4, t:'JOINs', d:'INNER, LEFT, SELF, multi-table JOINs', cls:'v4'},
+  {n:5, t:'Subqueries', d:'Scalar, IN/EXISTS, derived tables, NULL trap', cls:'v5'},
+  {n:6, t:'String Functions', d:'||, SUBSTR, INSTR, TRIM, REPLACE, UPPER/LOWER, LIKE, GLOB', cls:'v6'},
+  {n:7, t:'Date/Time & CASE', d:'strftime, julianday, CASE, date arithmetic', cls:'v7'},
+  {n:8, t:'CTEs', d:'WITH, chained, recursive, org chart', cls:'v8'},
+  {n:9, t:'Window Functions', d:'ROW_NUMBER, RANK, NTILE, LEAD/LAG, running totals', cls:'v9'},
+  {n:10, t:'Capstone', d:'Conditional aggregation, pivots, mixed concepts', cls:'v10'},
+];
+
+// ═══════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════
+async function init() {
+  const resp = await fetch('problems.json');
+  PROBLEMS = await resp.json();
+  document.getElementById('tot').textContent = PROBLEMS.length;
+  updateProgress();
+  renderLevels();
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+}
+
+initSqlJs().then(SQL_ => {
+  SQL = SQL_;
+  // If problems already loaded, all set; otherwise init() handles it
+}).catch(e => {
+  document.getElementById('loading').textContent = 'Failed to load sql.js: ' + e.message;
+});
+
+// ═══════════════════════════════════════
+// LEVEL RENDERER
+// ═══════════════════════════════════════
+function renderLevels() {
+  const ls = document.getElementById('levelList');
+  ls.innerHTML = '';
+  for (const l of LEVEL_META) {
+    const count = PROBLEMS.filter(p => p.level === l.n).length;
+    const sol = PROBLEMS.filter(p => p.level === l.n && solved.has(p.id)).length;
+    const btn = document.createElement('button');
+    btn.className = 'lb ' + l.cls;
+    btn.innerHTML = `<div class="n">${l.n}</div><div class="i"><h3>${l.t}</h3><small>${l.d} · ${sol}/${count}</small></div>`;
+    btn.onclick = () => selectLevel(l.n);
+    ls.appendChild(btn);
+  }
+}
+
+// ═══════════════════════════════════════
+// LEVEL SELECTION
+// ═══════════════════════════════════════
+function selectLevel(level) {
+  currentLevel = level;
+  filtered = PROBLEMS.filter(p => p.level === level);
+  currentIdx = 0;
+  document.getElementById('levelList').style.display = 'none';
+  document.getElementById('chips').innerHTML = '';
+  document.getElementById('probArea').style.display = 'block';
+  document.getElementById('jumpArea').style.display = 'none';
+
+  // Concept chips
+  const chips = document.getElementById('chips');
+  const allBtn = document.createElement('button');
+  allBtn.className = 'ch on';
+  allBtn.textContent = `All (${filtered.length})`;
+  allBtn.onclick = () => { filterBy('all'); document.querySelectorAll('.ch').forEach(b => b.className='ch'); allBtn.className='ch on'; };
+  chips.appendChild(allBtn);
+
+  const concCounts = {};
+  for (const p of filtered) {
+    for (const c of p.concepts) concCounts[c] = (concCounts[c]||0) + 1;
+  }
+  for (const [c, n] of Object.entries(concCounts)) {
+    const btn = document.createElement('button');
+    btn.className = 'ch';
+    btn.textContent = `${c} (${n})`;
+    btn.onclick = () => filterBy(c);
+    chips.appendChild(btn);
+  }
+
+  showProblem();
+  updateProgress();
+}
+
+function filterBy(concept) {
+  if (concept === 'all') {
+    filtered = PROBLEMS.filter(p => p.level === currentLevel);
+  } else {
+    filtered = PROBLEMS.filter(p => p.level === currentLevel && p.concepts.includes(concept));
+  }
+  currentIdx = 0;
+  document.querySelectorAll('.ch').forEach(b => {
+    b.className = 'ch';
+    if (b.textContent.startsWith('All') && concept === 'all') b.className = 'ch on';
+    if (b.textContent.startsWith(concept)) b.className = 'ch on';
+  });
+  showProblem();
+}
+
+// ═══════════════════════════════════════
+// PROBLEM DISPLAY
+// ═══════════════════════════════════════
+function showProblem() {
+  if (!filtered.length) {
+    document.getElementById('probHeader').innerHTML = '<p>No problems match this filter.</p>';
+    document.getElementById('probNum').textContent = '-';
+    return;
+  }
+  const p = filtered[currentIdx];
+  const probNum = filtered.indexOf(p) + 1;
+
+  // Header
+  const header = document.getElementById('probHeader');
+  header.innerHTML = `<h2>${p.title}</h2><div class="meta"><span>#${p.id}</span><span class="tag">${p.concepts.join(', ')}</span><span>${probNum}/${filtered.length}</span></div>`;
+
+  document.getElementById('probNum').textContent = `${probNum}/${filtered.length}`;
+  document.getElementById('sqlInput').value = '';
+  document.getElementById('resultBox').innerHTML = '';
+  document.getElementById('hintBox').className = 'ht';
+  document.getElementById('hintBox').textContent = p.hint || '';
+  document.getElementById('levelCt').textContent = `${filtered.length}`;
+
+  // Schema preview
+  previewSchema(p);
+
+  // Jump grid
+  renderJumpGrid();
+
+  updateProgress();
+}
+
+function previewSchema(p) {
+  const div = document.getElementById('schemaView');
+  try {
+    const db = new SQL.Database();
+    for (const stmt of (p.schema + ';' + p.data).split(';')) {
+      const s = stmt.trim();
+      if (s) db.run(s + ';');
+    }
+    const tables = db.exec("SELECT name FROM sqlite_master WHERE type='table'");
+    let html = '';
+    for (const t of tables) {
+      const name = t.values[0][0];
+      const info = db.exec(`SELECT sql FROM sqlite_master WHERE name='${name}'`);
+      html += `<h4>${name}</h4><code style="color:#8b949e">${info[0].values[0][0]}</code><br>`;
+    
+      const data = db.exec(`SELECT * FROM "${name}" LIMIT 8`);
+      if (data.length) {
+        html += '<table><tr>' + data[0].columns.map(c => `<th>${c}</th>`).join('') + '</tr>';
+        for (const row of data[0].values) {
+          html += '<tr>' + row.map(v => `<td>${v === null ? 'NULL' : v}</td>`).join('') + '</tr>';
+        }
+        html += '</table>';
+      }
+    }
+    div.innerHTML = html;
+    db.close();
+  } catch(e) {
+    div.innerHTML = '<p style="color:#f85149">Schema preview error</p>';
+  }
+}
+
+// ═══════════════════════════════════════
+// JUMP-TO-PROBLEM
+// ═══════════════════════════════════════
+function renderJumpGrid() {
+  const grid = document.getElementById('jumpGrid');
+  grid.innerHTML = '';
+  for (let i = 0; i < filtered.length; i++) {
+    const btn = document.createElement('button');
+    btn.textContent = i + 1;
+    btn.className = i === currentIdx ? 'act' : '';
+    if (solved.has(filtered[i].id)) btn.style.color = '#3fb950';
+    btn.onclick = () => { currentIdx = i; showProblem(); document.getElementById('jumpArea').style.display = 'none'; };
+    grid.appendChild(btn);
+  }
+}
+
+// ═══════════════════════════════════════
+// RUN QUERY
+// ═══════════════════════════════════════
+function runQuery() {
+  if (!SQL) { showResult('err', 'sql.js not loaded yet'); return; }
+  const p = filtered[currentIdx];
+  if (!p) return;
+
+  const sql = document.getElementById('sqlInput').value.trim();
+  if (!sql) { showResult('err', 'Enter a query'); return; }
+
+  const upper = sql.toUpperCase().trim();
+  if (!upper.startsWith('SELECT') && !upper.startsWith('WITH')) {
+    showResult('err', 'Only SELECT and WITH queries are allowed');
+    return;
+  }
+
+  try {
+    const db = new SQL.Database();
+
+    // Build problem data
+    for (const stmt of (p.schema + ';' + p.data).split(';')) {
+      const s = stmt.trim();
+      if (s) db.run(s + ';');
+    }
+
+    // Run user query
+    const userResult = db.exec(sql);
+    let userRows = [], columns = [];
+    if (userResult.length) {
+      columns = userResult[0].columns;
+      userRows = userResult[0].values.map(row => {
+        const obj = {};
+        columns.forEach((col, i) => { obj[col] = row[i]; });
+        return obj;
+      });
+    }
+
+    // Run solution
+    const solResult = db.exec(p.solution);
+    let solRows = [];
+    if (solResult.length) {
+      solRows = solResult[0].values.map(row => {
+        const obj = {};
+        solResult[0].columns.forEach((col, i) => { obj[col] = row[i]; });
+        return obj;
+      });
+    }
+
+    db.close();
+
+    // Compare
+    const correct = resultsMatch(p, userRows, solRows);
+
+    if (correct) {
+      showResult('ok', '✓ Correct!', columns, userRows);
+      streak++;
+      solved.add(p.id);
+      localStorage.setItem('sql_master_solved', JSON.stringify([...solved]));
+      updateProgress();
+      renderLevels();
+    } else {
+      showResult('fail', '✗ Not quite. Check your query against the expected output.', columns, userRows);
+      streak = 0;
+      // Also show expected
+      const expHtml = '<h4 style="margin-top:10px;color:#8b949e">Expected output:</h4>' + resultTable(solResult[0]);
+      document.getElementById('resultBox').innerHTML += expHtml;
+    }
+    document.getElementById('streak').textContent = streak;
+  } catch(e) {
+    showResult('err', 'Error: ' + e.message);
+  }
+}
+
+function resultTable(r) {
+  if (!r || !r.values.length) return '<p style="color:#8b949e">No rows</p>';
+  let html = '<table><tr>' + r.columns.map(c => `<th>${c}</th>`).join('') + '</tr>';
+  for (const row of r.values) {
+    html += '<tr>' + row.map(v => `<td>${v === null ? 'NULL' : v}</td>`).join('') + '</tr>';
+  }
+  html += '</table>';
+  return html;
+}
+
+function showResult(type, message, columns, rows) {
+  const box = document.getElementById('resultBox');
+  let html = `<div class="msg ${type}">${message}</div>`;
+  if (rows && rows.length) {
+    html += '<table><tr>' + columns.map(c => `<th>${c}</th>`).join('') + '</tr>';
+    for (const row of rows) {
+      html += '<tr>' + columns.map(c => `<td>${row[c] === null ? 'NULL' : row[c]}</td>`).join('') + '</tr>';
+    }
+    html += `<p style="color:#8b949e;margin-top:4px">${rows.length} row${rows.length !== 1 ? 's' : ''}</p>`;
+    html += '</table>';
+  } else {
+    html += '<p style="color:#8b949e">0 rows</p>';
+  }
+  box.innerHTML = html;
+}
+
+// ═══════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════
+function prevProblem() {
+  if (!filtered.length) return;
+  currentIdx = (currentIdx - 1 + filtered.length) % filtered.length;
+  showProblem();
+}
+
+function nextProblem() {
+  if (!filtered.length) return;
+  currentIdx = (currentIdx + 1) % filtered.length;
+  if (currentIdx === 0 && document.querySelector('#nextBtn').textContent.includes('Next')) {
+    // Looped back to start of current level
+  }
+  showProblem();
+}
+
+// ═══════════════════════════════════════
+// PROGRESS
+// ═══════════════════════════════════════
+function updateProgress() {
+  document.getElementById('solvedCt').textContent = solved.size;
+  const pct = PROBLEMS.length ? Math.round(solved.size / PROBLEMS.length * 100) : 0;
+  document.getElementById('progFill').style.width = pct + '%';
+}
+
+// ═══════════════════════════════════════
+// QUOTE AUTO-PAIRING
+// ═══════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('sqlInput');
+  input.addEventListener('keydown', function(e) {
+    if (e.key === '"' || e.key === "'") {
+      const start = this.selectionStart;
+      const end = this.selectionEnd;
+      const text = this.value;
+      // Don't auto-pair if next char is already a matching quote
+      if (end < text.length && text[end] === e.key) {
+        e.preventDefault();
+        this.setSelectionRange(end + 1, end + 1);
+        return;
+      }
+      e.preventDefault();
+      this.value = text.slice(0, start) + e.key + e.key + text.slice(end);
+      this.setSelectionRange(start + 1, start + 1);
+    }
+  });
+
+  // Ctrl+Enter to run
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      runQuery();
+    }
+  });
+});
+
+// ═══════════════════════════════════════
+// EVENT BINDING
+// ═══════════════════════════════════════
+document.getElementById('runBtn').onclick = runQuery;
+document.getElementById('prevBtn').onclick = prevProblem;
+document.getElementById('nextBtn').onclick = nextProblem;
+document.getElementById('hintBtn').onclick = () => document.getElementById('hintBox').classList.toggle('show');
+document.getElementById('jumpToggleBtn').onclick = () => {
+  const ja = document.getElementById('jumpArea');
+  ja.style.display = ja.style.display === 'none' ? 'block' : 'none';
+  renderJumpGrid();
+};
+</script>
+</body>
+</html>

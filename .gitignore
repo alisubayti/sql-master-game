@@ -1,0 +1,6 @@
+node_modules/
+verify_parity.py
+package.json
+package-lock.json
+README.md
+.env
