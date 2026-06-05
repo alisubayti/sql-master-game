@@ -307,7 +307,7 @@ function showProblem() {
 
   // Header
   const header = document.getElementById('probHeader');
-  header.innerHTML = `<h2>${p.title}</h2><div class="meta"><span>#${p.id}</span><span class="tag">${p.concepts.join(', ')}</span><span>${probNum}/${filtered.length}</span></div>`;
+  header.innerHTML = `<h2>${p.title}</h2><p style="color:#8b949e;font-size:0.9em;margin:6px 0">${p.desc}</p><div class="meta"><span>#${p.id}</span><span class="tag">${p.concepts.join(', ')}</span><span>${probNum}/${filtered.length}</span></div>`;
 
   document.getElementById('probNum').textContent = `${probNum}/${filtered.length}`;
   document.getElementById('sqlInput').value = '';
