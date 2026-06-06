@@ -10,7 +10,8 @@
 body{background:#0d1117;color:#c9d1d9;font:14px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',monospace;min-height:100vh}
 .c{max-width:820px;margin:0 auto;padding:16px}
 .hdr{text-align:center;padding:20px 0 16px}
-.hdr h1{font-size:1.6em;background:linear-gradient(135deg,#3fb950,#58a6ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hdr h1{font-size:1.6em;background:linear-gradient(135deg,#3fb950,#58a6ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;cursor:pointer}
+.hdr h1:hover{opacity:.8}
 .hdr p{color:#8b949e;font-size:0.9em;margin-top:4px}
 
 /* Level buttons */
@@ -32,21 +33,16 @@ body{background:#0d1117;color:#c9d1d9;font:14px/1.5 -apple-system,BlinkMacSystem
 .lb.v9{border-color:#ffa657}.lb.v9 .n{background:#3b2a1a;color:#ffa657}
 .lb.v10{border-color:#ffd33d}.lb.v10 .n{background:#3b3a1a;color:#ffd33d}
 
-/* Stats bar */
-.sr{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}
-.sr>div{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px;text-align:center}
-.sr .v{font-size:1.3em;font-weight:700;color:#f0f6fc}
-.sr .l{font-size:0.75em;color:#8b949e;margin-top:2px}
-
-/* Concept chips */
-.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
-.ch{background:#21262d;border:1px solid #30363d;border-radius:16px;padding:4px 12px;cursor:pointer;font-size:0.8em;color:#c9d1d9;transition:.15s}
-.ch.on{border-color:#58a6ff;background:#1a3a5c;color:#58a6ff}
-.ch:hover{border-color:#58a6ff}
+/* Problem-number grid (persistent, replaces concept chips and jump) */
+.pg{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}
+.pg button{width:32px;height:28px;background:#161b22;border:1px solid #30363d;border-radius:4px;color:#8b949e;cursor:pointer;font-size:0.72em;transition:.1s;padding:0}
+.pg button:hover{border-color:#58a6ff;color:#c9d1d9}
+.pg button.act{border-color:#3fb950;color:#3fb950;background:#1a472a}
+.pg button.solved{color:#3fb950}
 
 /* Problem header */
 .ph{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px;margin-bottom:10px}
-.ph h2{font-size:1.1em;margin-bottom:4px}
+.ph .desc{color:#c9d1d9;font-size:0.95em;margin-bottom:6px}
 .ph .meta{color:#8b949e;font-size:0.82em;display:flex;gap:12px;flex-wrap:wrap}
 .ph .meta .tag{color:#58a6ff}
 
@@ -76,23 +72,16 @@ body{background:#0d1117;color:#c9d1d9;font:14px/1.5 -apple-system,BlinkMacSystem
 .msg.fail{background:#3b1a1a;border:1px solid #f85149;color:#f85149}
 .msg.err{background:#3b2a1a;border:1px solid #d29922;color:#d29922}
 
-/* Jump-to-problem */
-.jp{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0;max-height:180px;overflow-y:auto}
-.jp button{width:36px;height:32px;background:#161b22;border:1px solid #30363d;border-radius:4px;color:#8b949e;cursor:pointer;font-size:0.75em;transition:.1s}
-.jp button:hover{border-color:#58a6ff;color:#c9d1d9}
-.jp button.act{border-color:#3fb950;color:#3fb950;background:#1a472a}
-
-/* Autocomplete toggle */
-.at{display:flex;align-items:center;gap:6px;margin:6px 0;font-size:0.82em;color:#8b949e}
-.at input[type=checkbox]{accent-color:#58a6ff}
+/* Hint & Solution toggle boxes */
+.ht{background:#1a3a5c;border:1px solid #58a6ff;border-radius:6px;padding:8px 10px;margin-top:8px;font-size:0.82em;display:none}
+.ht.show{display:block}
+.sb{background:#1a3a1a;border:1px solid #3fb950;border-radius:6px;padding:8px 10px;margin-top:8px;font-size:0.82em;display:none}
+.sb.show{display:block}
+.sb code{color:#7ee787;white-space:pre-wrap;word-break:break-all}
 
 /* Progress bar */
 .pb{margin:8px 0;height:6px;background:#21262d;border-radius:3px;overflow:hidden}
 .pb>div{height:100%;background:linear-gradient(90deg,#3fb950,#58a6ff);border-radius:3px;transition:width .3s}
-
-/* Hint */
-.ht{background:#1a3a5c;border:1px solid #58a6ff;border-radius:6px;padding:8px 10px;margin-top:8px;font-size:0.82em;display:none}
-.ht.show{display:block}
 
 /* Loading */
 #loading{display:flex;align-items:center;justify-content:center;min-height:200px;color:#8b949e}
@@ -100,38 +89,29 @@ body{background:#0d1117;color:#c9d1d9;font:14px/1.5 -apple-system,BlinkMacSystem
 </head>
 <body>
 <div class="c">
-  <div class="hdr"><h1>⚡ SQL Master</h1><p><span id="tot">0</span> problems · 10 levels</p></div>
+  <div class="hdr"><h1 id="homeBtn">⚡ SQL Master</h1><p><span id="tot">0</span> problems · 10 levels</p></div>
 
   <div id="loading">Loading sql.js engine…</div>
   <div id="app" style="display:none">
 
-    <!-- Progress -->
+    <!-- Progress bar -->
     <div class="pb"><div id="progFill" style="width:0%"></div></div>
-    <div class="sr">
-      <div><div class="v" id="solvedCt">0</div><div class="l">solved</div></div>
-      <div><div class="v" id="levelCt">0</div><div class="l">in level</div></div>
-      <div><div class="v" id="probNum">-</div><div class="l">problem</div></div>
-      <div><div class="v" id="streak">0</div><div class="l">streak</div></div>
-    </div>
 
     <!-- Level selection -->
     <div class="ls" id="levelList"></div>
 
-    <!-- Concept chips -->
-    <div class="chips" id="chips"></div>
-
-    <!-- Jump-to-problem -->
-    <div id="jumpArea" style="display:none"><div class="jp" id="jumpGrid"></div></div>
+    <!-- Persistent problem-number grid (replaces concept chips + jump) -->
+    <div class="pg" id="probGrid"></div>
 
     <!-- Problem display -->
     <div id="probArea" style="display:none">
       <div class="ph" id="probHeader"></div>
       <div class="st" id="schemaView"></div>
 
-      <div style="display:flex;gap:6px">
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
         <button class="eb" id="runBtn">▶ Run (Ctrl+Enter)</button>
         <button class="nb" id="hintBtn">💡 Hint</button>
-        <label class="at"><input type="checkbox" id="acToggle"> autocomplete</label>
+        <button class="nb" id="solutionBtn">🔑 Solution</button>
       </div>
 
       <textarea class="ed" id="sqlInput" spellcheck="false" placeholder="Write your SQL query here…"></textarea>
@@ -139,10 +119,10 @@ body{background:#0d1117;color:#c9d1d9;font:14px/1.5 -apple-system,BlinkMacSystem
       <div style="display:flex;gap:6px;margin-top:4px">
         <button class="nb" id="prevBtn">◀ Previous</button>
         <button class="nb" id="nextBtn">Next ▶</button>
-        <button class="nb" id="jumpToggleBtn">🔢 Jump</button>
       </div>
 
       <div class="ht" id="hintBox"></div>
+      <div class="sb" id="solutionBox"></div>
       <div class="r" id="resultBox"></div>
     </div>
 
@@ -188,7 +168,6 @@ let currentLevel = null;
 let currentIdx = 0;
 let filtered = [];
 let solved = new Set(JSON.parse(localStorage.getItem('sql_master_solved') || '[]'));
-let streak = 0;
 
 const LEVEL_META = [
   {n:1, t:'SELECT & Basics', d:'SELECT, WHERE, ORDER BY, LIMIT, LIKE, BETWEEN', cls:'v1'},
@@ -218,12 +197,24 @@ async function init() {
 
 initSqlJs().then(SQL_ => {
   SQL = SQL_;
-  // If problems already loaded, all set; otherwise init() handles it
   init();
 }).catch(e => {
   document.getElementById('loading').textContent = 'Failed to load sql.js: ' + e.message;
   init();
 });
+
+// ═══════════════════════════════════════
+// HOME — return to level selection
+// ═══════════════════════════════════════
+function goHome() {
+  currentLevel = null;
+  currentIdx = 0;
+  filtered = [];
+  document.getElementById('probArea').style.display = 'none';
+  document.getElementById('probGrid').style.display = 'none';
+  document.getElementById('levelList').style.display = 'grid';
+  renderLevels();
+}
 
 // ═══════════════════════════════════════
 // LEVEL RENDERER
@@ -250,47 +241,28 @@ function selectLevel(level) {
   filtered = PROBLEMS.filter(p => p.level === level);
   currentIdx = 0;
   document.getElementById('levelList').style.display = 'none';
-  document.getElementById('chips').innerHTML = '';
+  document.getElementById('probGrid').style.display = 'flex';
   document.getElementById('probArea').style.display = 'block';
-  document.getElementById('jumpArea').style.display = 'none';
 
-  // Concept chips
-  const chips = document.getElementById('chips');
-  const allBtn = document.createElement('button');
-  allBtn.className = 'ch on';
-  allBtn.textContent = `All (${filtered.length})`;
-  allBtn.onclick = () => { filterBy('all'); document.querySelectorAll('.ch').forEach(b => b.className='ch'); allBtn.className='ch on'; };
-  chips.appendChild(allBtn);
-
-  const concCounts = {};
-  for (const p of filtered) {
-    for (const c of p.concepts) concCounts[c] = (concCounts[c]||0) + 1;
-  }
-  for (const [c, n] of Object.entries(concCounts)) {
-    const btn = document.createElement('button');
-    btn.className = 'ch';
-    btn.textContent = `${c} (${n})`;
-    btn.onclick = () => filterBy(c);
-    chips.appendChild(btn);
-  }
-
+  renderProbGrid();
   showProblem();
   updateProgress();
 }
 
-function filterBy(concept) {
-  if (concept === 'all') {
-    filtered = PROBLEMS.filter(p => p.level === currentLevel);
-  } else {
-    filtered = PROBLEMS.filter(p => p.level === currentLevel && p.concepts.includes(concept));
+// ═══════════════════════════════════════
+// PERSISTENT PROBLEM-NUMBER GRID
+// ═══════════════════════════════════════
+function renderProbGrid() {
+  const grid = document.getElementById('probGrid');
+  grid.innerHTML = '';
+  for (let i = 0; i < filtered.length; i++) {
+    const btn = document.createElement('button');
+    btn.textContent = i + 1;
+    btn.className = i === currentIdx ? 'act' : '';
+    if (solved.has(filtered[i].id)) btn.classList.add('solved');
+    btn.onclick = () => { currentIdx = i; showProblem(); };
+    grid.appendChild(btn);
   }
-  currentIdx = 0;
-  document.querySelectorAll('.ch').forEach(b => {
-    b.className = 'ch';
-    if (b.textContent.startsWith('All') && concept === 'all') b.className = 'ch on';
-    if (b.textContent.startsWith(concept)) b.className = 'ch on';
-  });
-  showProblem();
 }
 
 // ═══════════════════════════════════════
@@ -299,30 +271,35 @@ function filterBy(concept) {
 function showProblem() {
   if (!filtered.length) {
     document.getElementById('probHeader').innerHTML = '<p>No problems match this filter.</p>';
-    document.getElementById('probNum').textContent = '-';
     return;
   }
   const p = filtered[currentIdx];
-  const probNum = filtered.indexOf(p) + 1;
+  const probNum = currentIdx + 1;
 
-  // Header
+  // Header — title removed, description only
   const header = document.getElementById('probHeader');
-  header.innerHTML = `<h2>${p.title}</h2><p style="color:#8b949e;font-size:0.9em;margin:6px 0">${p.desc}</p><div class="meta"><span>#${p.id}</span><span class="tag">${p.concepts.join(', ')}</span><span>${probNum}/${filtered.length}</span></div>`;
+  header.innerHTML = `<div class="desc">${p.desc}</div><div class="meta"><span>#${p.id}</span><span class="tag">${p.concepts.join(', ')}</span><span>${probNum}/${filtered.length}</span></div>`;
 
-  document.getElementById('probNum').textContent = `${probNum}/${filtered.length}`;
   document.getElementById('sqlInput').value = '';
   document.getElementById('resultBox').innerHTML = '';
   document.getElementById('hintBox').className = 'ht';
   document.getElementById('hintBox').textContent = p.hint || '';
-  document.getElementById('levelCt').textContent = `${filtered.length}`;
+  document.getElementById('solutionBox').className = 'sb';
+  document.getElementById('solutionBox').innerHTML = '<code>' + esc(p.solution) + '</code>';
 
   // Schema preview
   previewSchema(p);
 
-  // Jump grid
-  renderJumpGrid();
+  // Update grid highlight
+  renderProbGrid();
 
   updateProgress();
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
 }
 
 function previewSchema(p) {
@@ -339,7 +316,6 @@ function previewSchema(p) {
       const name = t.values[0][0];
       const info = db.exec(`SELECT sql FROM sqlite_master WHERE name='${name}'`);
       html += `<h4>${name}</h4><code style="color:#8b949e">${info[0].values[0][0]}</code><br>`;
-    
       const data = db.exec(`SELECT * FROM "${name}" LIMIT 8`);
       if (data.length) {
         html += '<table><tr>' + data[0].columns.map(c => `<th>${c}</th>`).join('') + '</tr>';
@@ -353,22 +329,6 @@ function previewSchema(p) {
     db.close();
   } catch(e) {
     div.innerHTML = '<p style="color:#f85149">Schema preview error</p>';
-  }
-}
-
-// ═══════════════════════════════════════
-// JUMP-TO-PROBLEM
-// ═══════════════════════════════════════
-function renderJumpGrid() {
-  const grid = document.getElementById('jumpGrid');
-  grid.innerHTML = '';
-  for (let i = 0; i < filtered.length; i++) {
-    const btn = document.createElement('button');
-    btn.textContent = i + 1;
-    btn.className = i === currentIdx ? 'act' : '';
-    if (solved.has(filtered[i].id)) btn.style.color = '#3fb950';
-    btn.onclick = () => { currentIdx = i; showProblem(); document.getElementById('jumpArea').style.display = 'none'; };
-    grid.appendChild(btn);
   }
 }
 
@@ -392,13 +352,11 @@ function runQuery() {
   try {
     const db = new SQL.Database();
 
-    // Build problem data
     for (const stmt of (p.schema + ';' + p.data).split(';')) {
       const s = stmt.trim();
       if (s) db.run(s + ';');
     }
 
-    // Run user query
     const userResult = db.exec(sql);
     let userRows = [], columns = [];
     if (userResult.length) {
@@ -410,7 +368,6 @@ function runQuery() {
       });
     }
 
-    // Run solution
     const solResult = db.exec(p.solution);
     let solRows = [];
     if (solResult.length) {
@@ -423,24 +380,20 @@ function runQuery() {
 
     db.close();
 
-    // Compare
     const correct = resultsMatch(p, userRows, solRows);
 
     if (correct) {
       showResult('ok', '✓ Correct!', columns, userRows);
-      streak++;
       solved.add(p.id);
       localStorage.setItem('sql_master_solved', JSON.stringify([...solved]));
       updateProgress();
       renderLevels();
+      renderProbGrid();
     } else {
       showResult('fail', '✗ Not quite. Check your query against the expected output.', columns, userRows);
-      streak = 0;
-      // Also show expected
       const expHtml = '<h4 style="margin-top:10px;color:#8b949e">Expected output:</h4>' + resultTable(solResult[0]);
       document.getElementById('resultBox').innerHTML += expHtml;
     }
-    document.getElementById('streak').textContent = streak;
   } catch(e) {
     showResult('err', 'Error: ' + e.message);
   }
@@ -484,9 +437,6 @@ function prevProblem() {
 function nextProblem() {
   if (!filtered.length) return;
   currentIdx = (currentIdx + 1) % filtered.length;
-  if (currentIdx === 0 && document.querySelector('#nextBtn').textContent.includes('Next')) {
-    // Looped back to start of current level
-  }
   showProblem();
 }
 
@@ -494,7 +444,6 @@ function nextProblem() {
 // PROGRESS
 // ═══════════════════════════════════════
 function updateProgress() {
-  document.getElementById('solvedCt').textContent = solved.size;
   const pct = PROBLEMS.length ? Math.round(solved.size / PROBLEMS.length * 100) : 0;
   document.getElementById('progFill').style.width = pct + '%';
 }
@@ -509,7 +458,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const start = this.selectionStart;
       const end = this.selectionEnd;
       const text = this.value;
-      // Don't auto-pair if next char is already a matching quote
       if (end < text.length && text[end] === e.key) {
         e.preventDefault();
         this.setSelectionRange(end + 1, end + 1);
@@ -521,7 +469,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Ctrl+Enter to run
   input.addEventListener('keydown', function(e) {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
@@ -537,11 +484,8 @@ document.getElementById('runBtn').onclick = runQuery;
 document.getElementById('prevBtn').onclick = prevProblem;
 document.getElementById('nextBtn').onclick = nextProblem;
 document.getElementById('hintBtn').onclick = () => document.getElementById('hintBox').classList.toggle('show');
-document.getElementById('jumpToggleBtn').onclick = () => {
-  const ja = document.getElementById('jumpArea');
-  ja.style.display = ja.style.display === 'none' ? 'block' : 'none';
-  renderJumpGrid();
-};
+document.getElementById('solutionBtn').onclick = () => document.getElementById('solutionBox').classList.toggle('show');
+document.getElementById('homeBtn').onclick = goHome;
 </script>
 </body>
 </html>
